@@ -1,6 +1,6 @@
 {
   "name": "kempo-payouts",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Let users receive money on a kempo site — Stripe Connect onboarding, charges on a recipient's account and a platform fee (planned; see PLAN.md)",
   "license": "MIT",
   "author": "Dustin Poissant",
