@@ -3,7 +3,7 @@ import { DEFAULT_PROVIDER, getProvider } from '../../providers/index.js';
 import { checkCountry, countryName, recordRefusal } from '../countries.js';
 import { cleanUserId } from '../validate.js';
 import { canReceive as accountCanReceive, toPublic } from './status.js';
-import { accountForUser, reclaimDisconnected, releaseAccount, reserveAccount, restoreDisconnected } from './store.js';
+import { accountForUser, deleteAccountRow, reclaimDisconnected, releaseAccount, reserveAccount, restoreDisconnected, updateAccount } from './store.js';
 import { applySnapshot, commit, syncAccount } from './sync.js';
 
 /*
@@ -79,6 +79,7 @@ export const createOnboardingLink = async ({ userId, returnUrl, refreshUrl, coun
   if(loadError && loadError.code !== 404) return [loadError, null];
 
   let account = existing;
+  let created = false;
   if(!existing || existing.status === 'disconnected'){
     const [countryError, chosen] = await checkCountry(country);
     if(countryError) return [countryError, null];
@@ -121,6 +122,7 @@ export const createOnboardingLink = async ({ userId, returnUrl, refreshUrl, coun
     }
     const [applyError, applied] = await applySnapshot(committed.account, snapshot);
     account = applyError ? committed.account : applied.account;
+    created = true;
   }
 
   if(account.status === 'creating') return [{ code: 409, msg: 'A payout account is already being set up for you — try again in a moment' }, null];
@@ -128,6 +130,21 @@ export const createOnboardingLink = async ({ userId, returnUrl, refreshUrl, coun
   const [providerError, provider] = getProvider(account.provider);
   if(providerError) return [providerError, null];
   const [linkError, link] = await provider.onboardingLink({ accountId: account.providerAccountId, returnUrl, refreshUrl });
+
+  /*
+    Stripe made the account and then would not onboard it — a country Connect Onboarding does not
+    support. Nobody could ever finish it, so it is undone: deleted at Stripe, and this user put back
+    as they were (no account, or their old disconnected one), with the country recorded as refused.
+  */
+  if(linkError?.refused === 'country'){
+    await recordRefusal(account.country, linkError.msg);
+    if(created){
+      await provider.deleteAccount(account.providerAccountId);
+      if(existing) await updateAccount(account.id, { providerAccountId: existing.providerAccountId, status: 'disconnected', country: existing.country, chargesEnabled: false, payoutsEnabled: false, disconnectedAt: existing.disconnectedAt });
+      else await deleteAccountRow(account.id);
+    }
+    return [{ code: 400, msg: `Stripe does not support payouts to ${countryName(account.country)} yet` }, null];
+  }
   if(linkError) return [linkError, null];
 
   return [null, { url: link.url, expiresAt: link.expiresAt, account: toPublic(account) }];

@@ -12,7 +12,8 @@ import * as stripe from './stripe.js';
   | `status()`             | `[err, { configured, hasWebhookSecret, mode, dashboard, feesCollector, … }]` |
   | `createAccount({ email, country, displayName, userId, idempotencyKey })` | `[err, snapshot]` — `err.refused === 'country'` when the provider will not open one there |
   | `retrieveAccount(id)`  | `[err, snapshot]` — `{ chargesEnabled, payoutsEnabled, requirementsDue, … }` |
-  | `onboardingLink({ accountId, returnUrl, refreshUrl })` | `[err, { url, expiresAt }]`                 |
+  | `onboardingLink({ accountId, returnUrl, refreshUrl })` | `[err, { url, expiresAt }]` — `err.refused === 'country'` when the provider will not onboard there |
+  | `deleteAccount(id)`   | `[err, true]` — only for an account just created that cannot be onboarded |
   | `dashboardLink({ accountId, dashboard })` | `[err, { url }]`                                         |
   | `balance({ accountId })` | `[err, { available: [{ amount, currency }], pending }]`                   |
   | `listCountries()`      | `[err, { platformCountry, countries: [{ country, supportedPaymentCurrencies, … }] }]` |

@@ -161,8 +161,19 @@ export const fromAccount = account => ({
   specs describe Stripe accounts in general, which can be wider than what a platform may create. Such
   a refusal is told apart from every other error so it can be recorded and turned into a plain
   sentence, rather than shown as Stripe's.
+
+  It comes in two forms, both seen in test mode on a US platform (2026-10-15):
+
+  - at creation, India: `cross_border_connected_account_creation_not_allowed` — "Connected accounts
+    in IN cannot be created by platforms in US."
+  - at the onboarding link, Malaysia: the account is created, then "You are trying to create an
+    account link for a connected account in a country that Connect Onboarding does not yet support."
 */
-export const isCountryRefusal = error => /country/i.test(`${error?.param || ''} ${error?.message || ''}`) && (error?.statusCode || 400) < 500;
+export const isCountryRefusal = error => (error?.statusCode || 400) < 500 && (
+  error?.code === 'cross_border_connected_account_creation_not_allowed'
+  || /country/i.test(error?.param || '')
+  || /cannot be created by platforms in|countr(y|ies)[^.]*(does not|doesn't|do not|not yet) support|(does not|doesn't|not yet) support[^.]*countr/i.test(error?.message || '')
+);
 
 export const createAccount = async ({ email, country, displayName, userId, idempotencyKey }) => {
   const [error, stripe] = await withClient();
@@ -212,6 +223,26 @@ export const onboardingLink = async ({ accountId, returnUrl, refreshUrl }) => {
   try {
     const link = await stripe.accountLinks.create({ account: accountId, type: 'account_onboarding', return_url: returnUrl, refresh_url: refreshUrl });
     return [null, { url: link.url, expiresAt: new Date(link.expires_at * 1000) }];
+  } catch(err) {
+    if(isCountryRefusal(err)){
+      console.warn(`[kempo-payouts] Stripe refused onboarding for ${accountId}: ${err.message}`);
+      return [{ code: 409, msg: err.message, refused: 'country' }, null];
+    }
+    return failure(err);
+  }
+};
+
+/*
+  Removes an account nobody can use — one Stripe created and then would not onboard. Only ever an
+  account this extension made moments earlier, with nothing on it; Stripe refuses to delete one that
+  has a balance.
+*/
+export const deleteAccount = async accountId => {
+  const [error, stripe] = await withClient();
+  if(error) return [error, null];
+  try {
+    await stripe.accounts.del(accountId);
+    return [null, true];
   } catch(err) {
     return failure(err);
   }

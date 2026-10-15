@@ -1,4 +1,4 @@
-import { asc, eq, sql } from 'drizzle-orm';
+import { asc, eq, lt } from 'drizzle-orm';
 import db from 'kempo/server/db/index.js';
 import { kempoPayoutCountry } from '../db/schema.js';
 import { getProvider } from '../providers/index.js';
@@ -77,9 +77,10 @@ export const refreshCountries = async () => {
         });
       }
       /* A country Stripe no longer lists is not offered: it has gone from Stripe's list, so it goes from this one. */
-      await tx.delete(kempoPayoutCountry).where(sql`${kempoPayoutCountry.fetchedAt} < ${now}`);
+      await tx.delete(kempoPayoutCountry).where(lt(kempoPayoutCountry.fetchedAt, now));
     });
-  } catch {
+  } catch(error) {
+    console.warn(`[kempo-payouts] Could not store Stripe's list of countries: ${error.message}`);
     return [{ code: 500, msg: 'Could not store the list of countries' }, null];
   }
   return [null, { count: result.countries.length, platformCountry: result.platformCountry, fetchedAt: now }];

@@ -3,7 +3,7 @@ import '/kempo-ui/components/Icon.js';
 import '/kempo-ui/components/Spinner.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getCharge, newKey, refundCharge, syncCharge } from '/payouts/sdk.js';
-import { chargeStatus, chargeTone, formatDateTime, formatMoney, parseMoney, toMajor } from '/payouts/utils/format.js';
+import { chargeLabel, chargeTone, formatDateTime, formatMoney, parseMoney, toMajor } from '/payouts/utils/format.js';
 import permissions from './permissions.js';
 
 /*
@@ -148,7 +148,7 @@ export default class Charge extends ShadowComponent {
 
     return html`
       <h2 class="mbq">${formatMoney(charge.amount, charge.currency)} to ${recipient?.name || recipient?.email || charge.recipientUserId}</h2>
-      <p class="mb"><span class="tc-${chargeTone(charge)}"><strong>${chargeStatus(charge.status)}</strong></span>${charge.disputed ? html` · <span class="tc-danger"><k-icon name="warning"></k-icon> Disputed</span>` : nothing}</p>
+      <p class="mb"><span class="tc-${chargeTone(charge)}"><strong>${chargeLabel({ ...charge, disputed: false })}</strong></span>${charge.disputed ? html` · <span class="tc-danger"><k-icon name="warning"></k-icon> Disputed</span>` : nothing}</p>
       ${this.notice ? html`<p class="tc-success mb" role="status"><k-icon name="check_circle"></k-icon> ${this.notice}</p>` : nothing}
       ${this.error ? html`<p class="tc-danger mb" role="alert">${this.error}</p>` : nothing}
       ${charge.feeCapPending > 0 ? html`<p class="tc-warning mb">${formatMoney(charge.feeCapPending, charge.currency)} of the fee is over the cap for this reference and is still to be given back to the recipient. Check with Stripe to try again.</p>` : nothing}
@@ -158,17 +158,17 @@ export default class Charge extends ShadowComponent {
         ${recipient ? html`<a class="btn" href="${ACCOUNTS}?tab=charges&owner=${encodeURIComponent(charge.referenceOwner)}&ref=${encodeURIComponent(charge.referenceId)}">Everything for this reference</a>` : nothing}
       </div>
 
-      <dl class="facts mb">
-        <dt>For</dt><dd>${charge.description || '—'}</dd>
-        <dt>Reference</dt><dd>${charge.referenceOwner} · ${charge.referenceId}</dd>
-        <dt>Paid to</dt><dd>${recipient ? html`${recipient.name} (${recipient.email})` : charge.recipientUserId} — Stripe account <span class="ff-mono">${charge.accountId}</span></dd>
-        <dt>Paid by</dt><dd>${payer ? `${payer.name} (${payer.email})` : payment?.customerEmail || 'A guest'}</dd>
-        <dt>Site’s fee</dt><dd>${formatMoney(charge.feeAmount, charge.currency)}${charge.feeSource === 'caller' ? ' — set by the calling code' : charge.feeCap ? `, under a cap of ${formatMoney(charge.feeCap, charge.currency)} for this reference` : ''}${charge.feeRefunded ? `; ${formatMoney(charge.feeRefunded, charge.currency)} given back` : ''}</dd>
-        <dt>Refunded</dt><dd>${formatMoney(charge.amountRefunded, charge.currency)}</dd>
-        <dt>Started</dt><dd>${formatDateTime(charge.createdAt)}</dd>
-        ${charge.succeededAt ? html`<dt>Paid</dt><dd>${formatDateTime(charge.succeededAt)}</dd>` : nothing}
-        ${payment ? html`<dt>Payment</dt><dd><span class="ff-mono">${payment.providerRef}</span>${payment.livemode ? '' : ' (test mode)'}</dd>` : nothing}
-      </dl>
+      <div class="table-wrapper mb"><table class="facts"><tbody>
+        <tr><th scope="row">For</th><td>${charge.description || '—'}</td></tr>
+        <tr><th scope="row">Reference</th><td>${charge.referenceOwner} · ${charge.referenceId}</td></tr>
+        <tr><th scope="row">Paid to</th><td>${recipient ? html`${recipient.name} (${recipient.email})` : charge.recipientUserId} — Stripe account <span class="ff-mono">${charge.accountId}</span></td></tr>
+        <tr><th scope="row">Paid by</th><td>${payer ? `${payer.name} (${payer.email})` : payment?.customerEmail || 'A guest'}</td></tr>
+        <tr><th scope="row">Site’s fee</th><td>${formatMoney(charge.feeAmount, charge.currency)}${charge.feeSource === 'caller' ? ' — set by the calling code' : charge.feeCap ? `, under a cap of ${formatMoney(charge.feeCap, charge.currency)} for this reference` : ''}${charge.feeRefunded ? `; ${formatMoney(charge.feeRefunded, charge.currency)} given back` : ''}</td></tr>
+        <tr><th scope="row">Refunded</th><td>${formatMoney(charge.amountRefunded, charge.currency)}</td></tr>
+        <tr><th scope="row">Started</th><td>${formatDateTime(charge.createdAt)}</td></tr>
+        ${charge.succeededAt ? html`<tr><th scope="row">Paid</th><td>${formatDateTime(charge.succeededAt)}</td></tr>` : nothing}
+        ${payment ? html`<tr><th scope="row">Payment</th><td><span class="ff-mono">${payment.providerRef}</span>${payment.livemode ? '' : ' (test mode)'}</td></tr>` : nothing}
+      </tbody></table></div>
 
       ${this.#renderRefund()}
 
@@ -197,9 +197,7 @@ export default class Charge extends ShadowComponent {
     :host { display: block; }
     .actions { gap: var(--spacer); align-items: center; }
     form input[type="text"] { max-width: 24rem; }
-    .facts { display: grid; grid-template-columns: max-content 1fr; column-gap: var(--spacer); row-gap: var(--spacer_h); }
-    .facts dt { color: var(--tc_muted); }
-    .facts dd { margin: 0; }
+    .facts th { width: 1%; white-space: nowrap; font-weight: normal; color: var(--tc_muted); }
   `;
 }
 

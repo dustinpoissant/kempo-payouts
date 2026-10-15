@@ -2,7 +2,7 @@ import ShadowComponent from '/kempo-ui/components/ShadowComponent.js';
 import '/kempo-ui/components/Spinner.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { listCharges } from '/payouts/sdk.js';
-import { chargeStatus, chargeTone, formatDateTime, formatMoney } from '/payouts/utils/format.js';
+import { chargeLabel, chargeTone, formatDateTime, formatMoney } from '/payouts/utils/format.js';
 
 /*
   Every payment made to a user, newest first, with what the site kept from each. Each opens its own
@@ -121,7 +121,7 @@ export default class Charges extends ShadowComponent {
                   <td class="ta-right">${formatMoney(charge.amount, charge.currency)}</td>
                   <td class="ta-right">${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}</td>
                   <td class="ta-right">${charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—'}</td>
-                  <td class="tc-${chargeTone(charge)}">${chargeStatus(charge.status)}${charge.disputed ? ' · disputed' : ''}</td>
+                  <td class="tc-${chargeTone(charge)}">${chargeLabel(charge)}</td>
                 </tr>
               `)}
             </tbody>

@@ -32,11 +32,16 @@ const PACKAGE_FILES = ['admin', 'hooks', 'public', 'server', 'install.js', 'upda
   `own` is the package under test, copied from this checkout; `others` are packages it works with,
   copied from this checkout's node_modules (so a sibling is exactly the release, or the local build,
   that was installed there).
+
+  `dir` is where the site is built — tests/.tmp-site for the browser suite; the test-mode procedure
+  (scripts/connect-test-mode.js) builds its own so a suite run cannot delete it from under it. It has
+  to be inside this repository, so kempo and the rest resolve from this repository's node_modules.
 */
-export const buildSite = async ({ own, others = [] }) => {
+export const buildSite = async ({ own, others = [], dir = siteDir }) => {
+  const siteDir = dir;
   await rm(siteDir, { recursive: true, force: true });
   await mkdir(path.join(siteDir, 'node_modules', own), { recursive: true });
-  await mkdir(screensDir, { recursive: true });
+  await mkdir(path.join(siteDir, 'screens'), { recursive: true });
 
   await cp(path.join(modules, 'kempo', 'app-public'), path.join(siteDir, 'public'), { recursive: true });
 
@@ -81,9 +86,16 @@ const waitFor = async (url, tries = 150) => {
   return false;
 };
 
-export const startServer = async () => {
+/*
+  The suite's own server, on a random port. `detached` starts one that outlives this process, writing
+  its output to `log` — the test-mode procedure's, which is left running for a person to use.
+*/
+export const startServer = async ({ dir = siteDir, detached = false, log = null, env = {} } = {}) => {
+  const siteDir = dir;
   const port = 20000 + Math.floor(Math.random() * 20000);
   const output = [];
+  const { openSync } = await import('fs');
+  const sink = detached && log ? openSync(log, 'a') : null;
   const child = spawn(process.execPath, [
     path.join(modules, 'kempo-server', 'dist', 'index.js'),
     '--root', path.join(siteDir, 'public'),
@@ -91,11 +103,16 @@ export const startServer = async () => {
     '--port', String(port),
   ], {
     cwd: siteDir,
-    env: { ...process.env, NODE_OPTIONS: '', KEMPO_DB: '' },
-    stdio: ['ignore', 'pipe', 'pipe'],
+    env: { ...process.env, NODE_OPTIONS: '', KEMPO_DB: '', ...env },
+    stdio: sink === null ? ['ignore', 'pipe', 'pipe'] : ['ignore', sink, sink],
+    detached,
   });
-  child.stdout.on('data', chunk => output.push(String(chunk)));
-  child.stderr.on('data', chunk => output.push(String(chunk)));
+  if(sink === null){
+    child.stdout.on('data', chunk => output.push(String(chunk)));
+    child.stderr.on('data', chunk => output.push(String(chunk)));
+  } else {
+    child.unref();
+  }
 
   const base = `http://127.0.0.1:${port}`;
   if(!await waitFor(`${base}/login`)){

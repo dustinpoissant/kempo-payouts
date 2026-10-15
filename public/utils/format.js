@@ -57,6 +57,14 @@ export const CHARGE_STATUS = {
 
 export const chargeStatus = status => CHARGE_STATUS[status] || status;
 
+/* A charge in words: its status, whether it was refunded, and whether it is disputed. */
+export const chargeLabel = charge => {
+  const refunded = charge.status === 'succeeded' && charge.amountRefunded > 0
+    ? (charge.amountRefunded >= charge.amount ? 'Refunded' : 'Partly refunded')
+    : chargeStatus(charge.status);
+  return charge.disputed ? `${refunded} · disputed` : refunded;
+};
+
 export const chargeTone = charge => {
   if(charge.disputed) return 'danger';
   if(charge.status === 'succeeded') return charge.amountRefunded >= charge.amount ? 'muted' : 'success';

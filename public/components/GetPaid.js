@@ -3,7 +3,7 @@ import '/kempo-ui/components/Icon.js';
 import '/kempo-ui/components/Spinner.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getMyAccount, getMyBalance, listMyCharges, openDashboard, refreshMyAccount, startOnboarding } from '/payouts/sdk.js';
-import { accountStatus, chargeStatus, chargeTone, formatDateTime, formatMoney, requirementLabels } from '/payouts/utils/format.js';
+import { accountStatus, chargeLabel, chargeTone, formatDateTime, formatMoney, requirementLabels } from '/payouts/utils/format.js';
 
 /*
   The Get paid page, served at /payouts/components/GetPaid.js — where a user connects the account
@@ -213,7 +213,7 @@ export default class GetPaid extends ShadowComponent {
                   <td class="ta-right">${formatMoney(charge.amount, charge.currency)}</td>
                   <td class="ta-right">${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}</td>
                   <td class="ta-right">${charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—'}</td>
-                  <td class="tc-${chargeTone(charge)}">${chargeStatus(charge.status)}${charge.disputed ? ' · disputed' : ''}</td>
+                  <td class="tc-${chargeTone(charge)}">${chargeLabel(charge)}</td>
                 </tr>
               `)}
             </tbody>

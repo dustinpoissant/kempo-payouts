@@ -79,6 +79,15 @@ export const restoreDisconnected = async id => {
   }
 };
 
+/* Forgets an account row outright — one whose processor account turned out to be unusable. */
+export const deleteAccountRow = async id => {
+  try {
+    await db.delete(kempoPayoutAccount).where(eq(kempoPayoutAccount.id, id));
+  } catch {
+    // Nothing more to do: the caller is already returning the refusal that made this necessary.
+  }
+};
+
 export const releaseAccount = async id => {
   try {
     await db.delete(kempoPayoutAccount).where(and(eq(kempoPayoutAccount.id, id), eq(kempoPayoutAccount.status, 'creating')));

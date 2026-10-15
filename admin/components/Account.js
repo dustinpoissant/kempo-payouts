@@ -3,7 +3,7 @@ import '/kempo-ui/components/Icon.js';
 import '/kempo-ui/components/Spinner.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getAccount, getAccountBalance, syncAccount } from '/payouts/sdk.js';
-import { accountStatus, chargeStatus, chargeTone, formatDateTime, formatMoney, requirementLabels } from '/payouts/utils/format.js';
+import { accountStatus, chargeLabel, chargeTone, formatDateTime, formatMoney, requirementLabels } from '/payouts/utils/format.js';
 
 /*
   One connected payout account: whose it is, what Stripe says about it, who pays Stripe's fees on it
@@ -139,16 +139,16 @@ export default class Account extends ShadowComponent {
 
       ${this.#renderBalance()}
 
-      <dl class="facts mb">
-        <dt>Stripe account</dt><dd class="ff-mono">${account.providerAccountId}${account.livemode ? '' : ' (test mode)'}</dd>
-        <dt>Country</dt><dd>${countryName} (${account.country})${account.defaultCurrency ? `, paid out in ${account.defaultCurrency.toUpperCase()}` : ''}</dd>
-        <dt>Dashboard</dt><dd>${account.dashboard === 'express' ? 'Stripe Express Dashboard' : account.dashboard === 'full' ? 'Full Stripe Dashboard' : account.dashboard || '—'}</dd>
-        <dt>Pays Stripe’s fees</dt><dd>${SETUP.feesCollector[account.feesCollector] || account.feesCollector || '—'}</dd>
-        <dt>Liable for losses</dt><dd>${SETUP.lossesCollector[account.lossesCollector] || account.lossesCollector || '—'}</dd>
-        <dt>Connected</dt><dd>${formatDateTime(account.createdAt)}</dd>
-        ${account.disconnectedAt ? html`<dt>Disconnected</dt><dd>${formatDateTime(account.disconnectedAt)}</dd>` : nothing}
-        <dt>Last heard from Stripe</dt><dd>${account.syncedAt ? formatDateTime(account.syncedAt) : 'Never — check the Connect webhook on the Settings tab'}</dd>
-      </dl>
+      <div class="table-wrapper mb"><table class="facts"><tbody>
+        <tr><th scope="row">Stripe account</th><td class="ff-mono">${account.providerAccountId}${account.livemode ? '' : ' (test mode)'}</td></tr>
+        <tr><th scope="row">Country</th><td>${countryName} (${account.country})${account.defaultCurrency ? `, paid out in ${account.defaultCurrency.toUpperCase()}` : ''}</td></tr>
+        <tr><th scope="row">Dashboard</th><td>${account.dashboard === 'express' ? 'Stripe Express Dashboard' : account.dashboard === 'full' ? 'Full Stripe Dashboard' : account.dashboard || '—'}</td></tr>
+        <tr><th scope="row">Pays Stripe’s fees</th><td>${SETUP.feesCollector[account.feesCollector] || account.feesCollector || '—'}</td></tr>
+        <tr><th scope="row">Liable for losses</th><td>${SETUP.lossesCollector[account.lossesCollector] || account.lossesCollector || '—'}</td></tr>
+        <tr><th scope="row">Connected</th><td>${formatDateTime(account.createdAt)}</td></tr>
+        ${account.disconnectedAt ? html`<tr><th scope="row">Disconnected</th><td>${formatDateTime(account.disconnectedAt)}</td></tr>` : nothing}
+        <tr><th scope="row">Last heard from Stripe</th><td>${account.syncedAt ? formatDateTime(account.syncedAt) : 'Never — check the Connect webhook on the Settings tab'}</td></tr>
+      </tbody></table></div>
 
       <h3>Payments to them</h3>
       ${totals.length ? html`<p class="mb">${totals.map(total => `${formatMoney(total.amount, total.currency)} paid, ${formatMoney(total.fees, total.currency)} kept by the site`).join('; ')}.</p>` : nothing}
@@ -164,7 +164,7 @@ export default class Account extends ShadowComponent {
                   <td class="ta-right">${formatMoney(charge.amount, charge.currency)}</td>
                   <td class="ta-right">${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}</td>
                   <td class="ta-right">${charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—'}</td>
-                  <td class="tc-${chargeTone(charge)}">${chargeStatus(charge.status)}${charge.disputed ? ' · disputed' : ''}</td>
+                  <td class="tc-${chargeTone(charge)}">${chargeLabel(charge)}</td>
                 </tr>
               `)}
             </tbody>
@@ -179,9 +179,7 @@ export default class Account extends ShadowComponent {
     .actions { gap: var(--spacer); align-items: center; }
     .tile { display: flex; flex-direction: column; gap: var(--spacer_q); max-width: 30rem; padding-bottom: var(--spacer); }
     .tile .value { font-size: 1.6rem; line-height: 1.2; font-weight: 600; }
-    .facts { display: grid; grid-template-columns: max-content 1fr; column-gap: var(--spacer); row-gap: var(--spacer_h); }
-    .facts dt { color: var(--tc_muted); }
-    .facts dd { margin: 0; }
+    .facts th { width: 1%; white-space: nowrap; font-weight: normal; color: var(--tc_muted); }
   `;
 }
 
