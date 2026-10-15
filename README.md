@@ -15,7 +15,8 @@ screens. Payments themselves are still kempo-payments' — there is one payment 
 hooks, one refund path — and this extension adds *who was paid and for what*, and *what the site kept*.
 
 > **Read [Who pays and who is liable](#who-pays-and-who-is-liable) before going live.** What Stripe
-> allows changed under the original plan, and the setup chosen decides who pays card processing fees.
+> allows changed under the original plan; recipients get the full Stripe Dashboard, so they pay Stripe's
+> card processing fee and the site pays nothing but its own costs.
 
 ## Requirements
 
@@ -157,35 +158,39 @@ dashboard the recipient gets, **who pays Stripe's fees** on a direct charge, and
 the account's balance goes negative. This was checked against Stripe's documentation and, because the
 documentation did not match what the API did, against Stripe's test mode on 2026-10-15.
 
-Stripe no longer creates legacy `type: express` accounts: account creation is Accounts v2
-(`POST /v2/core/accounts`), and the Express Dashboard is only allowed when the platform collects fees and
-carries losses ("When `stripe_dashboard[type]=express`, your platform must collect fees and be liable for
-negative balances or refunds and chargebacks"). So there are two real setups, chosen by `ACCOUNT_SETUP`
-in `server/providers/stripe.js`:
+**New recipients get the full Stripe Dashboard** (`ACCOUNT_SETUP = 'full'` in
+`server/providers/stripe.js`), which is the owner's choice. The alternative, the Express Dashboard, is
+still there and tested; it is what the plan originally decided, and it is not the one in use.
 
-| | **Express Dashboard** (`express`, as decided) | **Full Stripe Dashboard** (`full`) |
+| | **Full Stripe Dashboard** (`full`) — in use | Express Dashboard (`express`) — not in use |
 |---|---|---|
-| Recipient's experience | Stripe-hosted onboarding, Express Dashboard via a one-time login link | Stripe-hosted onboarding, then their own Stripe login |
-| Card processing fee on a tip | **The site** — billed to the platform; the recipient receives amount − fee | The recipient |
-| Dispute fee | **The site** | The recipient |
-| Connect fees | **The site**: $2 per monthly active account + 0.25% + 25¢ per payout | None |
-| 1099-K filing (US) | **The site** files, and pays $2.99 per form e-filed with the IRS, $1.49 per state form | Stripe |
-| Negative balance a recipient cannot repay | **The site** | Stripe |
+| Recipient's experience | Stripe-hosted onboarding, then their own Stripe login at dashboard.stripe.com | Stripe-hosted onboarding, Express Dashboard via a one-time login link |
+| Card processing fee on a tip | **The recipient** (Stripe's 2.9% + 30¢ in the US) | The site |
+| Dispute fee | **The recipient** | The site |
+| Connect fees | **None** | The site: $2 per monthly active account + 0.25% + 25¢ per payout |
+| 1099-K filing (US) | **Stripe** | The site files, and pays $2.99 per form e-filed with the IRS, $1.49 per state form |
+| Negative balance a recipient cannot repay | **Stripe** | The site |
 
-Test mode confirmed the first row: a $20.00 tip on an Express-Dashboard account with a $1.00 fee
-produced Stripe fees on the recipient's charge of exactly the application fee (100) and a recipient net
-of $19.00 — the card processing fee is billed to the platform separately.
+Why Express is not used: Stripe no longer creates legacy `type: express` accounts (account creation is
+Accounts v2, `POST /v2/core/accounts`), and it only allows the Express Dashboard when the platform
+collects fees and carries losses ("When `stripe_dashboard[type]=express`, your platform must collect
+fees and be liable for negative balances or refunds and chargebacks"). That would have put the card
+processing fee on the site.
 
-**What this means for the numbers.** With the Express Dashboard the plan's premise — "the recipient
-bears the processing fee, the site keeps only its cut, which is what makes 5% on $1 viable" — does not
-hold: at 5% of a $1 tip the site receives 5¢ and Stripe bills it about 33¢ (2.9% + 30¢). To make that
-work the fee must cover Stripe's processing fee as well, or the setup must be `full`. **The build keeps
-`express`, as decided, and recommends `full`; see PLAN.md's findings.** The recipient's own Stripe
-processing fee on the full-dashboard setup is the 2.9% + 30¢ the plan expected.
+**Checked in test mode, 2026-10-15** — a $20.00 direct charge with a $1.00 application fee:
 
-Stripe also says "We don't recommend using direct charges with this legacy setting" for accounts made
-the old Express way, and recommends direct charges "for connected accounts that have access to the full
-Stripe Dashboard".
+| Account | Stripe fees on the recipient's side | Recipient's net |
+|---|---|---|
+| Full Stripe Dashboard (in use) | processing **88¢** + the site's fee $1.00 | **$18.12** |
+| Express Dashboard | the site's fee $1.00 only (processing is billed to the platform) | $19.00 |
+
+So the plan's premise holds with `full`: the recipient bears the processing fee, the site keeps only
+its cut, and a 5% fee on a $1 tip is 5¢ for the site and a recipient net of about 62¢. Stripe also
+recommends direct charges "for connected accounts that have access to the full Stripe Dashboard".
+
+**What the recipient sees:** they finish Stripe's onboarding and then use a real Stripe account. The
+"Open your Stripe dashboard" button on the Get paid page takes them to dashboard.stripe.com. A
+recipient is told that, and what they will be asked for, before they start.
 
 ## Tax
 
@@ -193,8 +198,8 @@ Stripe Dashboard".
 - **The fee** is the site's revenue. Whether a platform fee charged to a business is taxable is a
   state-by-state question for the owner; this extension does not call kempo-tax for it.
 - **1099-K forms** (US recipients over $20,000 and 200 transactions in a year) are issued by Stripe only
-  when Stripe collects the fees (`full` above). On the Express Dashboard setup **the site is responsible
-  for filing**.
+  when Stripe collects the fees, which is the `full` setup in use. Had the Express Dashboard been used,
+  **the site would be responsible for filing**.
 
 ## Countries
 
@@ -291,7 +296,9 @@ node scripts/connect-test-mode.js stop
 
 With no one to complete Stripe's hosted onboarding, `STRIPE_TEST_CONNECTED_ACCOUNT=acct_…` adopts a
 connected account the platform already has, and touches it at Stripe so that the **webhook** makes it
-payable. Anything but test keys is refused. Last run, 2026-10-15, on an Express-Dashboard sample account:
+payable. Anything but test keys is refused. Last run, 2026-10-15, on an Express-Dashboard sample account
+(before the switch to `full`; the fee arithmetic on a full-dashboard account was then checked separately,
+see above):
 
 | Checked | Result |
 |---|---|

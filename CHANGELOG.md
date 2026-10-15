@@ -37,12 +37,13 @@ npm is a placeholder carrying the plan. Release **after kempo-payments 0.2.0**, 
   parallel connections and a Chromium suite on a throwaway site; guards that protect money are
   mutation-checked. `scripts/connect-test-mode.js` proves the Stripe parts in test mode.
 
-### Changed from the plan (decision 1 needs the owner — see PLAN.md "Findings while building")
+### Changed from the plan (decision 1, revised by the owner 2026-10-15 — see PLAN.md "Findings while building")
 
-- **Legacy `type: express` accounts cannot be created any more** (Stripe answers 400). The build creates
-  Accounts v2 accounts with the Express Dashboard, which Stripe only allows with the **site** collecting
-  fees and carrying losses. The consequence is that Stripe bills the site the card processing fee on
-  every payment, the site pays Connect fees ($2/active account/month + 0.25% + 25¢ per payout) and files
-  the recipients' 1099s — **the premise that the recipient bears the processing fee does not hold on
-  this setup.** The full Stripe Dashboard setup is implemented and one constant away
-  (`ACCOUNT_SETUP`); it is recommended and **not switched** because decision 1 says not to.
+- **Recipients get the full Stripe Dashboard, not the Express Dashboard** (`ACCOUNT_SETUP = 'full'`;
+  the owner's choice). Legacy `type: express` accounts cannot be created any more (Stripe answers 400),
+  and Accounts v2 only allows the Express Dashboard with the **site** collecting fees and carrying
+  losses — which would have put the card processing fee, Connect fees, 1099 filing and negative
+  balances on the site and defeated the plan's premise that the recipient bears processing. With
+  `full`, Stripe collects its fees from the recipient and carries the losses. Verified in test mode: a
+  $20.00 charge with a $1.00 fee shows Stripe's 88¢ on the recipient's side and a net of $18.12. The
+  Express setup remains in the code and tests as the alternative.

@@ -1,15 +1,19 @@
 # kempo-payouts — PLAN
 
 > Status: **built 2026-10-15, committed locally, not pushed or published.** Unit 61, integration 70,
-> and the test-mode procedure (`scripts/connect-test-mode.js`) passed against Stripe. **Decision 1 needs
-> the owner again — read "Findings while building" before anything else.** Not done: a person
+> and the test-mode procedure (`scripts/connect-test-mode.js`) passed against Stripe. **Decision 1 was
+> revised the same day: recipients get the full Stripe Dashboard** ("Findings while building" has why).
+> Not done: a person
 > completing Stripe's hosted onboarding in a browser; installing into kempo-demo. See the README.
 
 ## Decisions made (owner, 2026-10-14)
 
 These close questions the rest of this file raised. They are rules, not defaults.
 
-1. **Account type: Express.** The platform carries chargebacks and negative balances on a recipient's
+1. **Account type: ~~Express~~ → the full Stripe Dashboard (revised by the owner, 2026-10-15; see
+   "Findings while building" — Stripe will not create Express accounts the way this was written, and the
+   Express Dashboard puts processing fees, Connect fees, 1099s and losses on the site).** *Original text:*
+   Express. The platform carries chargebacks and negative balances on a recipient's
    account, as Stripe's current docs describe for Express with direct charges. **Confirm that
    against the current docs while building and write the real position in the README** — who is
    liable, for what, and what the site's exposure is on a lost dispute. If the docs show something
@@ -57,7 +61,7 @@ These close questions the rest of this file raised. They are rules, not defaults
   extensions' suites did — read through kempo's settings, never printed, refused unless they begin
   `sk_test_`.
 
-## Findings while building (2026-10-15) — decision 1 needs the owner again
+## Findings while building (2026-10-15) — decision 1 revised: the full Stripe Dashboard
 
 Decision 1 said to stop and write it up here if Stripe differs from what this file assumes. It does,
 and the most important part was found by calling Stripe's **test mode**, not by reading the docs.
@@ -112,17 +116,22 @@ balance goes negative; Stripe first takes a dispute from the recipient's own bal
 | Negative balance the recipient cannot repay | **The site** | Stripe |
 | Stripe's advice for direct charges | Not its recommendation | Its recommendation ("We recommend using direct charges for connected accounts that have access to the full Stripe Dashboard") |
 
-**Recommendation: the full Stripe Dashboard.** It is the only setup in which the plan's own premise —
-the recipient bears processing, the site keeps only its cut — is true, and it also removes the
-Connect fees, the 1099 filing and the liability. The cost is a less hand-held recipient experience: a
-DJ gets a real Stripe account. A third option, no Stripe dashboard at all with Connect *embedded
-components* on the Get paid page, could keep recipients on the site with Stripe collecting fees; it
-is not built and would need its own plan.
+**Decided by the owner, 2026-10-15: the full Stripe Dashboard.** It is the only setup in which the plan's
+own premise — the recipient bears processing, the site keeps only its cut — is true, and it also
+removes the Connect fees, the 1099 filing and the liability. The cost is a less hand-held recipient
+experience: a DJ gets a real Stripe account. A third option, no Stripe dashboard at all with Connect
+*embedded components* on the Get paid page, could keep recipients on the site with Stripe collecting
+fees; it is not built and would need its own plan.
 
-To switch: set `ACCOUNT_SETUP = 'full'` in `server/providers/stripe.js`, and change the README's
-"Who pays and who is liable" section to say so. Accounts already created keep the setup they were
-created with — Stripe does not allow changing a dashboard or fee collector later — and each account
-row records its own `dashboard`, `feesCollector` and `lossesCollector`, which the admin screen shows.
+**Done:** `ACCOUNT_SETUP = 'full'` in `server/providers/stripe.js`, the README's "Who pays and who is
+liable" and the CHANGELOG say so, and a test holds it. **Verified in test mode** on a full-dashboard
+account: a $20.00 charge with a $1.00 application fee shows Stripe's 88¢ processing fee on the
+recipient's side and a recipient net of $18.12 (the Express account showed no processing fee on the
+recipient's side and a net of $19.00); creating a v2 account with `dashboard: full`, `fees_collector:
+stripe`, `losses_collector: stripe` and requesting its onboarding link both succeed. Accounts already
+created keep the setup they were created with — Stripe does not allow changing a dashboard or fee
+collector later — and each account row records its own `dashboard`, `feesCollector` and
+`lossesCollector`, which the admin screen shows.
 
 ### Also found, and handled without needing a decision
 

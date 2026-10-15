@@ -60,15 +60,19 @@ export const webhookEvents = [
   - `full` — the full Stripe Dashboard, with **Stripe** collecting its fees from the recipient and
     carrying the losses; Stripe files the 1099-K. Stripe's own recommendation for direct charges.
 
-  `express` is what the owner decided (decision 1); `full` is the recommendation in PLAN.md. Changing
-  this affects accounts created from then on; existing ones keep theirs.
+  **`full` is what the owner chose, 2026-10-15** (PLAN.md decision 1, as revised), after Stripe's
+  behaviour made the original `express` choice put the card processing fee, the Connect fees, the
+  1099 filing and the losses on the site. Verified in test mode: on a full-dashboard account a $20.00
+  charge with a $1.00 application fee shows Stripe's 88¢ fee on the recipient's side and a recipient
+  net of $18.12. `express` stays here, tested, as the alternative. Changing this affects accounts
+  created from then on; existing ones keep theirs.
 */
 export const ACCOUNT_SETUPS = {
   express: { dashboard: 'express', feesCollector: 'application', lossesCollector: 'application' },
   full: { dashboard: 'full', feesCollector: 'stripe', lossesCollector: 'stripe' },
 };
 
-export const ACCOUNT_SETUP = 'express';
+export const ACCOUNT_SETUP = 'full';
 
 const read = async (owner, key) => {
   const [error, value] = await getSetting(owner, key, '');

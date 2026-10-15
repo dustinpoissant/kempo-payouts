@@ -71,6 +71,11 @@ export default {
     if(express.dashboard !== 'express' || express.feesCollector !== 'application' || express.lossesCollector !== 'application') return fail(`express is ${JSON.stringify(express)}`);
     if(full.dashboard !== 'full' || full.feesCollector !== 'stripe' || full.lossesCollector !== 'stripe') return fail(`full is ${JSON.stringify(full)}`);
     if(!stripe.ACCOUNT_SETUPS[stripe.ACCOUNT_SETUP]) return fail(`ACCOUNT_SETUP is ${stripe.ACCOUNT_SETUP}`);
+    /*
+      The owner's decision (2026-10-15): recipients pay Stripe's processing fee and Stripe carries the
+      losses. Switching back to express puts both on the site — change this assertion with eyes open.
+    */
+    if(stripe.ACCOUNT_SETUP !== 'full') return fail(`new accounts are set up as "${stripe.ACCOUNT_SETUP}", not the full Stripe Dashboard the owner chose`);
     pass(`new accounts: ${stripe.ACCOUNT_SETUP}`);
   },
 };

@@ -19,8 +19,8 @@ import { formatDateTime, formatMoney, parseMoney, toMajor } from '/payouts/utils
 */
 
 const SETUPS = {
-  express: 'New recipients get the Stripe Express Dashboard. Stripe only allows that when this site collects Stripe’s fees and carries the losses: on every payment to a recipient Stripe bills this site the card processing fee (the fee percentage has to cover it), dispute fees and Connect’s monthly and per-payout fees, this site files the recipients’ 1099s, and a negative balance a recipient cannot repay is this site’s.',
-  full: 'New recipients get the full Stripe Dashboard. Stripe collects its fees from them and carries the losses: this site keeps exactly its fee, pays no Connect fees, and Stripe files the recipients’ 1099-Ks.',
+  express: 'New recipients get the Stripe Express Dashboard (this setup is not the one in use; it is here as the alternative). Stripe only allows that when this site collects Stripe’s fees and carries the losses: on every payment to a recipient Stripe bills this site the card processing fee (the fee percentage has to cover it), dispute fees and Connect’s monthly and per-payout fees, this site files the recipients’ 1099s, and a negative balance a recipient cannot repay is this site’s.',
+  full: 'New recipients get the full Stripe Dashboard. Stripe collects its fees from them and carries the losses: the recipient pays the card processing fee, this site keeps exactly its fee, pays no Connect fees, and Stripe files the recipients’ 1099-Ks.',
 };
 
 export default class Settings extends ShadowComponent {
