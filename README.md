@@ -326,6 +326,21 @@ npm test                  # unit tier: in-memory Postgres, nothing external
 npm run test:integration  # real Postgres + a Chromium browser suite on a throwaway site
 ```
 
+### Webhooks on a local site
+
+Stripe cannot reach `localhost`, so a dashboard endpoint will not deliver to a local site. The Stripe CLI
+can, and it prints its own signing secret:
+
+```bash
+STRIPE_API_KEY=sk_test_… stripe listen --print-secret          # the whsec_… to paste under Payouts → Settings
+STRIPE_API_KEY=sk_test_… stripe listen   --forward-connect-to localhost:9876/payouts/api/webhooks/stripe   --forward-to localhost:9876/payments/api/webhooks/stripe     # only if kempo-payments uses the same secret
+```
+
+Use `STRIPE_API_KEY` rather than `stripe login`: the CLI's logged-in account and the site's saved keys
+can be different Stripe accounts, and the listener then forwards nothing, with no error. A `200` in the
+listener's output means the event was signature-verified and accepted. The secret is the same each time
+for one Stripe account, so it only needs saving once; the listener has to be running for events to arrive.
+
 `link:local` copies rather than symlinks: a symlinked package resolves its own copy of kempo and
 drizzle, and with it a second database. Never commit a `file:` specifier.
 
