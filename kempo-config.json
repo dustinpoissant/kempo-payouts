@@ -2,7 +2,78 @@
   "docs": "https://github.com/dustinpoissant/kempo-payouts#readme",
   "git": "https://github.com/dustinpoissant/kempo-payouts",
   "public-scope": "payouts",
+  "schema": "./server/db/schema.js",
   "dependencies": [
     "kempo-payments"
+  ],
+  "hooks": {
+    "payment:succeeded": "./hooks/payment-succeeded.js",
+    "payment:refunded": "./hooks/payment-refunded.js",
+    "payment:disputed": "./hooks/payment-disputed.js",
+    "payment:canceled": "./hooks/payment-canceled.js"
+  },
+  "permissions": [
+    {
+      "name": "payouts:connect",
+      "description": "Connect your own payout account so other people can pay you, see its status and your charges, and open your Stripe dashboard"
+    },
+    {
+      "name": "payouts:view",
+      "description": "See every connected payout account, every charge made to one, and the fees the site has collected"
+    },
+    {
+      "name": "payouts:refund",
+      "description": "Refund a charge made to somebody's payout account, with or without the site's fee"
+    },
+    {
+      "name": "payouts:settings",
+      "description": "Change the fee, the fee cap, the countries payouts are offered in and the Connect webhook secret"
+    }
+  ],
+  "settings": [
+    {
+      "name": "fee_percent",
+      "value": "5",
+      "type": "number",
+      "description": "The site's fee on each payment to a user, as a percentage of it. 0 takes no fee. Up to two decimal places, less than 100"
+    },
+    {
+      "name": "fee_cap",
+      "value": "0",
+      "type": "number",
+      "description": "The most fee the site takes from one recipient for one reference (an event, say), in the smallest unit of the site's currency — 5000 is $50.00. 0 means no cap"
+    },
+    {
+      "name": "allowed_countries",
+      "value": "",
+      "type": "string",
+      "description": "Two-letter country codes, comma-separated, that recipients may connect from. Empty means every country Stripe supports for this. It can only narrow Stripe's list"
+    },
+    {
+      "name": "connect_webhook_secret",
+      "value": "",
+      "type": "secret",
+      "description": "Signing secret (whsec_…) of the Stripe webhook endpoint that listens to events on connected accounts. Without it no account ever becomes ready and no payment to a user is ever confirmed"
+    }
+  ],
+  "groups": [
+    {
+      "name": "kempo-payouts:viewer",
+      "description": "Can see connected payout accounts, charges to them and the fees collected, but change nothing",
+      "permissions": [
+        "system:admin:access",
+        "payouts:view"
+      ]
+    },
+    {
+      "name": "kempo-payouts:administrator",
+      "description": "Everything a viewer can do, plus refunding charges and changing the fee and Connect settings",
+      "permissions": [
+        "system:admin:access",
+        "payouts:view",
+        "payouts:refund",
+        "payouts:settings"
+      ]
+    }
   ]
 }

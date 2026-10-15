@@ -1,38 +1,52 @@
 {
   "name": "kempo-payouts",
   "version": "0.0.3",
-  "description": "Let users receive money on a kempo site — Stripe Connect onboarding, charges on a recipient's account and a platform fee (planned; see PLAN.md)",
+  "description": "Let users of a kempo site receive money from other users through Stripe Connect, with a fee for the site, without the site ever holding the funds",
   "license": "MIT",
   "author": "Dustin Poissant",
   "type": "module",
+  "main": "sdk.js",
   "scripts": {
-    "test": "node scripts/run-tests.js kempo-test -l minimal",
-    "link:local": "npm install ../kempo ../kempo-server ../kempo-ui ../kempo-payments --no-save --no-legacy-peer-deps --force"
+    "test": "node scripts/run-tests.js unit kempo-test -l minimal",
+    "test:integration": "node scripts/run-tests.js integration kempo-test -l minimal -t 120000",
+    "link:local": "node scripts/link-local.js"
+  },
+  "exports": {
+    "./install": "./install.js",
+    "./update": "./update.js",
+    "./uninstall": "./uninstall.js",
+    "./sdk": "./sdk.js"
   },
   "files": [
     "admin",
+    "hooks",
     "public",
     "server",
     "install.js",
     "update.js",
+    "uninstall.js",
     "sdk.js",
-    "kempo-config.json",
-    "PLAN.md"
+    "kempo-config.json"
   ],
   "repository": {
     "type": "git",
     "url": "git+https://github.com/dustinpoissant/kempo-payouts.git"
   },
+  "dependencies": {
+    "drizzle-orm": "^0.45.2",
+    "stripe": "^22.5.0"
+  },
   "peerDependencies": {
     "kempo": ">=4.5.8",
+    "kempo-payments": ">=0.2.0",
     "kempo-server": ">=3.3.0",
-    "kempo-ui": ">=0.4.53",
-    "kempo-payments": ">=0.1.9"
+    "kempo-ui": ">=0.4.53"
   },
   "devDependencies": {
     "@electric-sql/pglite": "^0.5.9",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-kit": "^0.31.10",
     "kempo-testing-framework": "^1.4.11",
+    "playwright": "^1.64.0",
     "postgres": "^3.4.9"
   },
   "allowScripts": {

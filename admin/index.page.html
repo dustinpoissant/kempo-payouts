@@ -1,0 +1,68 @@
+<!--
+locked: true
+-->
+<page title="Payouts - Admin">
+<content>
+  <script type="module" src="/kempo/components/PermissionTarget.js"></script>
+  <script type="module" src="/kempo-ui/components/Tabs.js"></script>
+  <script type="module" src="/kempo-ui/components/Icon.js"></script>
+  <script type="module" src="/admin/extension/kempo-payouts/components/Accounts.js"></script>
+  <script type="module" src="/admin/extension/kempo-payouts/components/Charges.js"></script>
+  <script type="module" src="/admin/extension/kempo-payouts/components/Settings.js"></script>
+
+  <div>
+    <h1>Payouts</h1>
+    <p class="tc-muted mb">
+      Users of this site being paid by other users — a guest tipping a DJ — through Stripe Connect. Each
+      recipient has their own Stripe account; payments to them are made on it, Stripe pays them out to
+      their bank, and this site keeps only its fee. The money is never this site’s to hold.
+    </p>
+
+    <k-tabs id="tabs" active="accounts" persistent-id="kempo-payouts-admin-tab">
+      <k-tab id="accountsTab" for="accounts">Accounts</k-tab>
+      <k-tab id="chargesTab" for="charges">Payments</k-tab>
+      <k-tab id="settingsTab" for="settings">Settings</k-tab>
+
+      <k-tab-content id="accountsContent" name="accounts">
+        <k-payouts-accounts></k-payouts-accounts>
+      </k-tab-content>
+
+      <k-tab-content id="chargesContent" name="charges">
+        <k-payouts-charges></k-payouts-charges>
+      </k-tab-content>
+
+      <k-tab-content id="settingsContent" name="settings">
+        <k-payouts-settings></k-payouts-settings>
+      </k-tab-content>
+    </k-tabs>
+
+    <!--
+      k-tabs finds its tabs with a direct-child query, so nothing can wrap a <k-tab>; these reach in by
+      id instead. A courtesy only: every route checks the permission itself.
+    -->
+    <k-permission-target has="payouts:view" target="#accountsTab, #accountsContent, #chargesTab, #chargesContent"></k-permission-target>
+    <k-permission-target has="payouts:settings" target="#settingsTab, #settingsContent"></k-permission-target>
+  </div>
+
+  <script type="module">
+    import { getAllCurrentUserPermissions } from '/kempo/sdk.js';
+
+    await customElements.whenDefined('k-tabs');
+
+    /*
+      ?tab= opens a tab directly (a payment's page links to "every payment for this reference"), and a
+      remembered tab this person can no longer see is never left selected.
+    */
+    const [error, data] = await getAllCurrentUserPermissions();
+    const permissions = new Set(error ? [] : (data?.permissions || []));
+    const visible = { accounts: permissions.has('payouts:view'), charges: permissions.has('payouts:view'), settings: permissions.has('payouts:settings') };
+    const tabs = document.getElementById('tabs');
+    const asked = new URLSearchParams(location.search).get('tab');
+    if(asked && visible[asked]) tabs.active = asked;
+    else if(!visible[tabs.active]){
+      const fallback = Object.keys(visible).find(name => visible[name]);
+      if(fallback) tabs.active = fallback;
+    }
+  </script>
+</content>
+</page>

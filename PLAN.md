@@ -55,6 +55,85 @@ These close questions the rest of this file raised. They are rules, not defaults
   extensions' suites did — read through kempo's settings, never printed, refused unless they begin
   `sk_test_`.
 
+## Findings while building (2026-10-15) — decision 1 needs the owner again
+
+Decision 1 said to stop and write it up here if Stripe differs from what this file assumes. It does,
+and the most important part was found by calling Stripe's **test mode**, not by reading the docs.
+**Nothing was switched.** The build creates accounts with the Express Dashboard as decided, and the
+choice lives in one place (`ACCOUNT_SETUPS` / `ACCOUNT_SETUP` in `server/providers/stripe.js`) with
+the alternative below implemented and tested next to it, so changing it is one word.
+
+### What Stripe actually does (test mode, 2026-10-15, on the owner's platform `acct_1U8s88…`, US)
+
+1. **Legacy Express accounts cannot be created any more.** `POST /v1/accounts` with `type=express`
+   (and every other v1 account creation) answers 400: "Stripe no longer recommends Accounts v1 for new
+   Connect integrations. Create connected accounts with POST /v2/core/accounts instead." Accounts are
+   created with **Accounts v2**; everything else (retrieve, onboarding links, Express login links,
+   payment intents with `Stripe-Account`) still takes the v2 account's `acct_…` id on v1 endpoints, and
+   v2 accounts still send v1 `account.updated` events to a Connect-scope webhook
+   ([Accounts v2](https://docs.stripe.com/connect/accounts-v2)).
+2. **The Express Dashboard forces the platform to pay Stripe's fees and carry the losses.** Asking for
+   `stripe_dashboard=express` with the connected account paying fees answers 400: "When
+   `stripe_dashboard[type]=express`, your platform must collect fees and be liable for negative
+   balances or refunds and chargebacks." In v2 terms: `dashboard: 'express'` needs
+   `fees_collector: 'application'` and `losses_collector: 'application'`.
+3. **With `fees_collector: 'application'`, the site pays the card processing fee on every direct
+   charge** — not the recipient. Stripe: "If you set the fee collector to application, you collect the
+   payment and fees, then pay Stripe its processing fee. Set the application fee amount to include both
+   your fee and the Stripe processing fee"
+   ([connected account configuration](https://docs.stripe.com/connect/accounts-v2/connected-account-configuration)).
+   That is the exact thing "How a tip is charged" below exists to avoid: at 5% of a $1 tip the site
+   receives 5¢ and Stripe bills it ~33¢. Dispute fees are the site's too
+   ([fee behavior](https://docs.stripe.com/connect/direct-charges-fee-payer-behavior)).
+4. **The site pays Connect fees on Express:** $2 per monthly active account (a payout was sent that
+   month) plus 0.25% + 25¢ per payout ([Connect pricing](https://stripe.com/connect/pricing)). When
+   Stripe collects the fees there are no Connect fees.
+5. **The site files the 1099s on Express, not Stripe.** "Stripe doesn't issue a 1099-K to your
+   connected account … where controller.fees.payer equals application" — the platform files, at $2.99
+   per IRS e-file and $1.49 per state ([tax reporting](https://docs.stripe.com/connect/tax-reporting)).
+   "Concepts" and "Tax" below assumed Stripe issues them; that holds only when Stripe collects fees.
+
+What this file assumed and Stripe confirms: on Express the **site is liable** when a recipient's
+balance goes negative; Stripe first takes a dispute from the recipient's own balance.
+
+### The two ways to set an account up
+
+| | **Express Dashboard** (as decided) | **Full Stripe Dashboard** |
+|---|---|---|
+| v2 `dashboard` / `fees_collector` / `losses_collector` | `express` / `application` / `application` | `full` / `stripe` / `stripe` |
+| Onboarding | Stripe-hosted (account link) | Stripe-hosted (account link) — asks a little more, since it opens a full Stripe account |
+| Recipient's dashboard | Express Dashboard, opened with a one-time login link from the Get paid page | dashboard.stripe.com, signed into with their own Stripe login |
+| Card processing fee on a tip | **The site** (unless the fee is raised to cover it) | The recipient |
+| Dispute fee | **The site** | The recipient |
+| Connect fees | **The site**: $2/active account/month + 0.25% + 25¢ per payout | None |
+| 1099-K | **The site** files and pays per form | Stripe |
+| Negative balance the recipient cannot repay | **The site** | Stripe |
+| Stripe's advice for direct charges | Not its recommendation | Its recommendation ("We recommend using direct charges for connected accounts that have access to the full Stripe Dashboard") |
+
+**Recommendation: the full Stripe Dashboard.** It is the only setup in which the plan's own premise —
+the recipient bears processing, the site keeps only its cut — is true, and it also removes the
+Connect fees, the 1099 filing and the liability. The cost is a less hand-held recipient experience: a
+DJ gets a real Stripe account. A third option, no Stripe dashboard at all with Connect *embedded
+components* on the Get paid page, could keep recipients on the site with Stripe collecting fees; it
+is not built and would need its own plan.
+
+To switch: set `ACCOUNT_SETUP = 'full'` in `server/providers/stripe.js`, and change the README's
+"Who pays and who is liable" section to say so. Accounts already created keep the setup they were
+created with — Stripe does not allow changing a dashboard or fee collector later — and each account
+row records its own `dashboard`, `feesCollector` and `lossesCollector`, which the admin screen shows.
+
+### Also found, and handled without needing a decision
+
+- **Brazil.** "Platforms based outside of Brazil with Brazilian connected accounts can't collect
+  application fees through Stripe" ([direct charges](https://docs.stripe.com/connect/direct-charges)).
+  BR is left off the list on a platform outside Brazil, with that reason.
+- **Currency.** A country is offered only when Stripe's country spec lists the site's currency among
+  its `supported_payment_currencies` — Stripe's own answer to "can this account take a charge in this
+  currency", so no list is typed in. The fee is named in the charge currency; Stripe converts the tip
+  into the recipient's currency and the fee into the platform's.
+- **Refunding the fee.** Stripe's default is *not* to refund the application fee; this extension
+  passes `refund_application_fee: true` unless told otherwise, as planned.
+
 > **Upstream changes are allowed.** Every dependency with `kempo` in its name (kempo, kempo-ui,
 > kempo-css, kempo-server, kempo-payments, kempo-media, and the rest) is owned by the same person, and
 > the goal of this project is to keep improving all of them. If the work here needs a change in one of
