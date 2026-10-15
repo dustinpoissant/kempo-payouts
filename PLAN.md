@@ -12,9 +12,16 @@ These close questions the rest of this file raised. They are rules, not defaults
    against the current docs while building and write the real position in the README** — who is
    liable, for what, and what the site's exposure is on a lost dispute. If the docs show something
    different from what this file assumes, stop and write it up here; do not quietly switch type.
-2. **Countries: any country Stripe supports for Express.** The allowed list is a *setting* that
-   defaults to every supported country, so a site can narrow it. Consequences, which the build must
-   handle and test rather than assume away:
+2. **Countries: any country Stripe supports for Express — and no others.** The list is **Stripe's,
+   never typed in here**: take the countries from Stripe's country specs API, cache them, and
+   check them against where Express accounts are actually available (country specs describes Stripe
+   accounts in general, which may be wider than Connect Express — verify, and let Stripe's own
+   refusal to create the account be the final word, turned into a plain message such as "Stripe
+   does not support payouts to <country> yet"). A country Stripe does not support can never be
+   selected or onboarded. The *setting* (`allowed_countries`) can only **narrow** that list, defaults
+   to all of it, and an unknown value is rejected on save. Onboarding refuses an unsupported country
+   before sending anyone to Stripe. Consequences, which the build must handle and test rather than
+   assume away:
    - A recipient settles in **their own** currency. Charges are made in the **site's currency**
      (kempo-products' `currency` setting) and Stripe converts for the recipient, who bears
      conversion. Verify in Stripe's docs that a direct charge in a currency other than the connected
@@ -195,7 +202,7 @@ a normal signed-in user holds). Groups `kempo-payouts:administrator`, `kempo-pay
 Follow `~/dev/kempo/AGENTS.md` and copy the structure of `~/dev/kempo-payments`. Specifically:
 
 - `server/utils/**` is HTTP-agnostic, returns `[error, data]` tuples, never throws.
-- Public scope `payouts`. Custom elements prefixed **`k-out-`**. `<k-icon>`, never entities.
+- Public scope `payouts`. Custom elements prefixed **`k-payouts-`**. `<k-icon>`, never entities.
 - Credentials are `secret` settings, declared in `kempo-config.json`, saved with their declared
   type. Blank means unchanged, an explicit `null` clears — see kempo-payments' settings route.
 - Provider seam from the first commit, as in kempo-payments, even though only Stripe ships.
