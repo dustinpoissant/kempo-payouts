@@ -177,7 +177,7 @@ export default class Settings extends ShadowComponent {
           <details class="mb">
             <summary>${unsupported.length} countr${unsupported.length === 1 ? 'y' : 'ies'} on Stripe’s list cannot be offered</summary>
             <ul>
-              ${unsupported.map(country => html`<li>${country.name}: ${country.reason}${country.refused ? html` <button type="button" class="link" @click=${() => this.retry(country.code)}>Try again</button>` : nothing}</li>`)}
+              ${unsupported.map(country => html`<li>${country.name}: ${country.reason}${country.refused ? html` <button type="button" @click=${() => this.retry(country.code)}>Try again</button>` : nothing}</li>`)}
             </ul>
           </details>
         ` : nothing}
@@ -204,13 +204,13 @@ export default class Settings extends ShadowComponent {
       </label>
       <details class="mb">
         <summary>The ${webhook.events.length} events to send it</summary>
-        <ul class="ff-mono">${webhook.events.map(event => html`<li>${event}</li>`)}</ul>
+        <ul class="ff-mono events">${webhook.events.map(event => html`<li>${event}</li>`)}</ul>
       </details>
       <label class="d-b mb" for="secret">Signing secret
         <small class="d-b tc-muted">Begins whsec_. Never shown again once saved; leave empty to keep the one saved.${encryptionConfigured ? '' : ' SETTINGS_ENCRYPTION_KEY is not set on this server, so it cannot be saved.'}</small>
         <input id="secret" type="password" autocomplete="off" placeholder=${status?.hasWebhookSecret ? '•••••••• (saved)' : 'whsec_…'} .value=${this.form.secret} @input=${event => { this.form = { ...this.form, secret: event.target.value }; }} />
       </label>
-      ${status?.hasWebhookSecret ? html`<div class="mb"><button type="button" class="link" ?disabled=${!!this.busy} @click=${this.clearSecret}>Remove the saved secret</button></div>` : nothing}
+      ${status?.hasWebhookSecret ? html`<div class="mb"><button type="button" ?disabled=${!!this.busy} @click=${this.clearSecret}>Remove the saved secret</button></div>` : nothing}
     `;
   }
 
@@ -222,12 +222,12 @@ export default class Settings extends ShadowComponent {
       ${status && !status.configured ? html`<p class="tc-warning mb"><k-icon name="warning"></k-icon> Stripe is not connected. Add the secret key on the Payments screen first — payouts use the same Stripe account.</p>` : nothing}
       <form @submit=${this.save}>
         <h3>Fee</h3>
-        <div class="row -mx">
-          <label class="span-4 m-span-12 px mb" for="percent">Fee (%)
+        <div class="d-f fields">
+          <label class="mb" for="percent">Fee (%)
             <small class="d-b tc-muted">Kept from each payment to a user. 0 takes none; up to two decimal places.</small>
             <input id="percent" type="text" inputmode="decimal" required .value=${this.form.percent} @input=${event => { this.form = { ...this.form, percent: event.target.value }; }} />
           </label>
-          <label class="span-4 m-span-12 px mb" for="cap">Most per recipient, per reference (${settings.currency.toUpperCase()})
+          <label class="mb" for="cap">Most per recipient, per reference (${settings.currency.toUpperCase()})
             <small class="d-b tc-muted">The most fee kept from one person for one reference, such as an event. Empty for no cap.</small>
             <input id="cap" type="text" inputmode="decimal" placeholder="No cap" .value=${this.form.cap} @input=${event => { this.form = { ...this.form, cap: event.target.value }; }} />
           </label>
@@ -254,9 +254,11 @@ export default class Settings extends ShadowComponent {
   static styles = css`
     :host { display: block; }
     .actions { gap: var(--spacer); align-items: center; }
+    .fields { gap: 0 var(--spacer); }
+    .fields label { flex: 1 1 16rem; max-width: 30rem; }
+    .events { overflow-wrap: anywhere; }
     input[type="text"], input[type="password"] { max-width: 32rem; }
     .countries { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: var(--spacer_q) var(--spacer); }
-    button.link { background: none; border: none; padding: 0; cursor: pointer; }
   `;
 }
 
