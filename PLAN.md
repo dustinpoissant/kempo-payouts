@@ -1,7 +1,52 @@
 # kempo-payouts — PLAN
 
-> Status: **planned, nothing built.** This file is the brief. Build exactly what it describes and
-> raise disagreements here rather than improvising.
+> Status: **planned, nothing built — decisions made, ready to build.** This file is the brief. Build
+> exactly what it describes and raise disagreements here rather than improvising.
+
+## Decisions made (owner, 2026-10-14)
+
+These close questions the rest of this file raised. They are rules, not defaults.
+
+1. **Account type: Express.** The platform carries chargebacks and negative balances on a recipient's
+   account, as Stripe's current docs describe for Express with direct charges. **Confirm that
+   against the current docs while building and write the real position in the README** — who is
+   liable, for what, and what the site's exposure is on a lost dispute. If the docs show something
+   different from what this file assumes, stop and write it up here; do not quietly switch type.
+2. **Countries: any country Stripe supports for Express.** The allowed list is a *setting* that
+   defaults to every supported country, so a site can narrow it. Consequences, which the build must
+   handle and test rather than assume away:
+   - A recipient settles in **their own** currency. Charges are made in the **site's currency**
+     (kempo-products' `currency` setting) and Stripe converts for the recipient, who bears
+     conversion. Verify in Stripe's docs that a direct charge in a currency other than the connected
+     account's default is allowed for the countries on the list, and drop (and document) any country
+     where it is not.
+   - **The fee and the per-reference cap are in the charge currency**, which is always the site's
+     currency, so the cap is one number whatever the recipient's country.
+   - The application fee is taken in the charge currency. Check that Stripe's own minimums and
+     zero-decimal currencies are respected (kempo-payments' `money` rules apply).
+   - Onboarding must show the recipient's country and what it means for them (currency conversion,
+     payout timing) before they start.
+3. **Refunds: administrators and calling code only.** An admin screen, and a refund function in the
+   SDK for consumers (Crowd Pulse decides who may ask). A recipient has **no** refund button on
+   their Get paid page. They can see their charges and refunds, read-only.
+4. **Scope of the build: kempo-payments' Connect support first, then this, both committed locally
+   and nothing pushed or published.** The owner reviews and releases, in order: kempo-payments
+   (a minor), then kempo-payouts. See "Order of work".
+
+### Defaults the build applies without asking (change them here if they are wrong)
+
+- **Instant payouts are not offered by this extension.** Stripe's payout schedule applies. A
+  recipient who wants an instant payout can request one in their Express dashboard and pays
+  Stripe's fee themselves. Nothing in this extension charges or absorbs it.
+- **Tips → credits is not built.** See the last section; nothing in v1 depends on it.
+- **`payouts:connect` is held by `system:Users` from the first install only**, like other
+  extensions' "buy" permissions: an update never gives it back to a site that took it away.
+- **The Connect webhook secret** is a `secret` setting; the platform's Stripe key is
+  kempo-payments' and is not duplicated here.
+- **Stripe test mode has Connect enabled** on the owner's account (checked 2026-10-14: the Connect
+  API answers). Test-mode procedures can use the demo's encrypted test keys the way earlier
+  extensions' suites did — read through kempo's settings, never printed, refused unless they begin
+  `sk_test_`.
 
 > **Upstream changes are allowed.** Every dependency with `kempo` in its name (kempo, kempo-ui,
 > kempo-css, kempo-server, kempo-payments, kempo-media, and the rest) is owned by the same person, and
@@ -45,9 +90,9 @@ It is a separate extension, not part of Crowd Pulse and not folded into kempo-pa
 ## Concepts
 
 - **Connected account** — one Stripe **Express** account per recipient user (`acct_…`), linked to a
-  kempo user. Express: Stripe hosts onboarding and the recipient dashboard. Confirm in Stripe's
-  current docs that Express is still the right type and what it implies for who issues tax forms
-  and who is liable for disputes and negative balances.
+  kempo user. Express: Stripe hosts onboarding and the recipient dashboard. Decision 1 above: verify
+  in the current docs and write down who issues tax forms and who is liable for disputes and
+  negative balances.
 - **Onboarding** — a Stripe-hosted flow (account link). The recipient enters identity and bank
   details **at Stripe**; this site never sees or stores them.
 - **Capabilities** — `charges_enabled` and `payouts_enabled`. A recipient cannot be paid until both
@@ -68,7 +113,7 @@ and this extension depends on it.
 ## Fees
 
 - A **fee percent** setting, default 5.
-- A **maximum fee per recipient per reference** option (Crowd Pulse: 5% up to $1,000 of tips per
+- A **maximum fee per recipient per reference** option, in the charge (site) currency, (Crowd Pulse: 5% up to $1,000 of tips per
   event, so at most $50). This needs the running total already charged against that reference, so
   this extension records every charge it creates in `kempoPayoutCharge`.
 - A fee must be **computable by the caller**: `createConnectedPayment` accepts an explicit
@@ -167,6 +212,38 @@ Follow `~/dev/kempo/AGENTS.md` and copy the structure of `~/dev/kempo-payments`.
 - Recipient page and admin screens loaded and checked in a browser.
 - README documents real Connect pricing, liability, and the tax position. CHANGELOG written.
 
+## Order of work
+
+1. **kempo-payments first**, in its own repository, exactly as `../kempo-payments/PLAN.md`
+   describes: the columns and `update.js` migration, the provider options, refunds with
+   `refundApplicationFee`, the browser form's connected-account attribute, `receiveVerifiedEvent`.
+   Its existing suite must pass **unmodified**. Commit there; do not push or publish.
+2. **Then this extension**, against that local kempo-payments. Install it for development by
+   copying the sibling's published `files` into `node_modules` (not a symlink, and never a `file:`
+   specifier in package.json; `peerDependencies` names the minor that will contain Connect support).
+3. Keep the two repositories' CHANGELOGs honest about what is unreleased.
+
+## Conventions added since this plan was written
+
+On top of the list above (these came out of building the credits, store credit and commerce plans):
+
+- A field's hint or footnote goes in a muted `<small>` **inside its `<label>`, above the input**.
+  Give fields and blocks an `mb` class. A detail view is a **page of its own** (its own address, so
+  the back button works), not content swapped in place.
+- New columns on an existing table are added in `update.js` **and** `install.js` with
+  `IF NOT EXISTS`; kempo's installer only creates tables that are missing. Unique indexes are created
+  by hand in `install.js`.
+- Money is a whole number of the currency's smallest unit; a caller names an amount, not a price.
+  Every write that can be retried takes an idempotency key.
+- Optional extensions are found with `getExtension` and imported on demand; a disabled one counts as
+  absent. This extension's one hard dependency is kempo-payments.
+- Test tiers: unit on PGlite (`npm test`), integration on a real Postgres with a Playwright browser
+  suite that builds a throwaway site and installs through kempo's own route. Mutation-check the tests
+  that guard money (remove the guard, watch the test fail). Stripe test-mode flows run only when test
+  keys are present and are skipped with a message otherwise.
+- Test database port: pick the next free one in the repos' docker-compose files (5451 is free as of
+  2026-10-14), name `kempo_payouts_test`.
+
 ## Open questions for the owner (do not guess)
 
 - **Tips → credits.** Crowd Pulse wants a DJ to turn tip earnings into credits to avoid fees. With
@@ -174,5 +251,6 @@ Follow `~/dev/kempo/AGENTS.md` and copy the structure of `~/dev/kempo-payments`.
   Options: a per-recipient "keep as credits" mode that routes the tip to the platform and grants
   credits instead (platform pays processing; needs a bonus rate to be attractive), or no
   conversion in v1. Needs the owner's decision *and* a tax and legal read. Do not build until decided.
-- Which countries to allow recipients from (Connect is not available everywhere).
-- Instant payouts: offer, and who pays Stripe's fee for them?
+- ~~Which countries to allow recipients from.~~ **Decided: any country Stripe supports for Express**,
+  as a narrowable setting (decision 2).
+- ~~Instant payouts.~~ **Decided: not offered here**; Stripe's schedule applies (defaults above).
