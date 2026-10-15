@@ -69,19 +69,19 @@ export default {
     await seedCountries();
     const nobody = await freshUser('Nobody');
     const [none] = await createConnectedPayment({ recipientUserId: nobody.id, amount: 500, reference, idempotencyKey: key() });
-    if(none?.code !== 409) return fail(`a recipient with no account gave ${JSON.stringify(none)}`);
+    if(none?.code !== 409 || notConnected(none)) return fail(`a recipient with no account gave ${JSON.stringify(none)}`);
 
     const restricted = await freshUser('Restricted');
     await seedAccount({ userId: restricted.id, status: 'restricted' });
     const [notReady] = await createConnectedPayment({ recipientUserId: restricted.id, amount: 500, reference, idempotencyKey: key() });
-    if(notReady?.code !== 409) return fail(`a restricted recipient gave ${JSON.stringify(notReady)}`);
+    if(notReady?.code !== 409 || notConnected(notReady)) return fail(`a restricted recipient gave ${JSON.stringify(notReady)}`);
 
     const british = await freshUser('British');
     await seedAccount({ userId: british.id, country: 'GB' });
     await setSettings({ allowed_countries: 'US' });
     const [narrowed] = await createConnectedPayment({ recipientUserId: british.id, amount: 500, reference, idempotencyKey: key() });
     await resetSettings();
-    if(narrowed?.code !== 409 || !/United Kingdom/.test(narrowed.msg)) return fail(`a recipient in a country no longer offered gave ${JSON.stringify(narrowed)}`);
+    if(narrowed?.code !== 409 || notConnected(narrowed) || !/United Kingdom/.test(narrowed.msg)) return fail(`a recipient in a country no longer offered gave ${JSON.stringify(narrowed)}`);
     pass('');
   },
 

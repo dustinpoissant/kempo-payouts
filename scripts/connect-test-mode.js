@@ -207,6 +207,24 @@ const chargesPhase = async () => {
   if(!state?.base) throw new Error('Run the start phase first.');
   const env = { state, ...await connect(state) };
 
+  /*
+    Without a person to complete Stripe's hosted onboarding, STRIPE_TEST_CONNECTED_ACCOUNT=acct_… adopts
+    a connected account the platform already has that can take charges: the recipient is recorded as
+    connected to it, as "pending", and the account is touched at Stripe so that the account.updated
+    webhook — not a sync — is what makes it payable. Everything after that is identical.
+  */
+  const adopt = process.env.STRIPE_TEST_CONNECTED_ACCOUNT;
+  const [, existing] = await env.payouts.getAccount({ userId: state.recipientId });
+  if(adopt && !existing){
+    const { reserveAccount, updateAccount } = await import('../server/utils/accounts/store.js');
+    const [reserveError, reserved] = await reserveAccount({ userId: state.recipientId, provider: 'stripe', country: 'US' });
+    if(reserveError) throw new Error(reserveError.msg);
+    const [updateError] = await updateAccount(reserved.id, { providerAccountId: adopt, status: 'pending', livemode: false });
+    if(updateError) throw new Error(updateError.msg);
+    await env.stripe.accounts.update(adopt, { metadata: { kempoPayoutsProcedure: new Date().toISOString() } });
+    console.log(`Adopted ${adopt}; touched it at Stripe so its account.updated webhook arrives.`);
+  }
+
   // 1. Onboarding finished, and the webhook — not a sync — made the recipient payable.
   let account = null;
   for(let attempt = 0; attempt < 60; attempt++){
@@ -219,7 +237,12 @@ const chargesPhase = async () => {
   if(!account?.canReceive) return finish();
   check('the account was set up as ACCOUNT_SETUP says', !!account.dashboard && !!account.feesCollector, `${account.dashboard} dashboard, fees collected by ${account.feesCollector}, losses carried by ${account.lossesCollector}`);
   const [linkError, link] = await env.payouts.createDashboardLink({ userId: state.recipientId });
-  check('the recipient gets a link into their Stripe dashboard', !linkError && /^https:\/\//.test(link?.url || ''), linkError?.msg || link.url.replace(/\/[^/]*$/, '/…'));
+  if(/not completed onboarding/i.test(linkError?.msg || '')){
+    // An adopted account that never went through Stripe's hosted onboarding: Stripe will not make its login link. Not a pass, not a failure.
+    console.log('SKIP  the recipient gets a link into their Stripe dashboard — this account never completed hosted onboarding, so Stripe will not make a login link for it; onboard a recipient through /payouts/ to cover it');
+  } else {
+    check('the recipient gets a link into their Stripe dashboard', !linkError && /^https:\/\//.test(link?.url || ''), linkError?.msg || link.url.replace(/\/[^/]*$/, '/…'));
+  }
 
   // 2. A $20.00 tip at 5%: the site's fee is $1.00, on Stripe as well as here.
   await env.kempo.setSetting('kempo-payouts', 'fee_percent', 5, 'number', false, null);

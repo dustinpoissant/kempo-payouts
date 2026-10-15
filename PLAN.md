@@ -1,7 +1,9 @@
 # kempo-payouts — PLAN
 
-> Status: **planned, nothing built — decisions made, ready to build.** This file is the brief. Build
-> exactly what it describes and raise disagreements here rather than improvising.
+> Status: **built 2026-10-15, committed locally, not pushed or published.** Unit 61, integration 70,
+> and the test-mode procedure (`scripts/connect-test-mode.js`) passed against Stripe. **Decision 1 needs
+> the owner again — read "Findings while building" before anything else.** Not done: a person
+> completing Stripe's hosted onboarding in a browser; installing into kempo-demo. See the README.
 
 ## Decisions made (owner, 2026-10-14)
 
