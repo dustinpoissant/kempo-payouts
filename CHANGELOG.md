@@ -4,6 +4,11 @@ All notable changes to `kempo-payouts` are documented in this file.
 
 ## [Unreleased]
 
+### Changed
+
+- **Its menu icon ships with it** (`admin/icons/payments.svg`), used by `icon-src`, instead of coming from kempo's shared set.
+- Its menu entry is in the **Payments** group, after Store Credits (priority 76), instead of Commerce.
+
 First real release (built 2026-10-15; committed locally, **not pushed or published**). The package on
 npm is a placeholder carrying the plan. Release **after kempo-payments 0.2.0**, which this requires.
 

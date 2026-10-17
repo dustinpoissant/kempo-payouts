@@ -232,7 +232,7 @@ an instant payout asks in their Stripe dashboard and pays Stripe's fee themselve
 
 ## Admin
 
-Under **Commerce → Payouts**:
+Under **Payments → Payouts**:
 
 - **Accounts** — fees collected (per currency), accounts by state, and every connected account with its
   status, country and Stripe id. An account's page shows what Stripe still needs, its balance (live),

@@ -170,7 +170,7 @@ export default {
       }
     }
     const nav = await read('admin/nav.global.html');
-    if(!/group="Commerce"/.test(nav)) return fail('the nav entry is not in the Commerce group');
+    if(!/group="Payments"/.test(nav)) return fail('the nav entry is not in the Payments group');
     pass('');
   },
 

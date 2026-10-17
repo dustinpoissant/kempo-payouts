@@ -150,12 +150,12 @@ const tests = {
     pass('offered Canada, the UK and the US — not Brazil, not a country that cannot take USD');
   },
 
-  'the nav links to the screen, under Commerce': async ({ pass, fail }) => {
+  'the nav links to the screen, under Payments': async ({ pass, fail }) => {
     const page = await newPage('admin');
     await page.goto(`${state.server.base}/admin/`);
     const link = page.locator('k-aside-item[href="/admin/extension/kempo-payouts/"]');
     if(!await link.count()) return fail('no Payouts entry in the admin nav');
-    if(await link.getAttribute('group') !== 'Commerce') return fail('the link is not in the Commerce group');
+    if(await link.getAttribute('group') !== 'Payments') return fail('the link is not in the Payments group');
     await page.context().close();
     pass('');
   },
