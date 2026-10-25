@@ -1,6 +1,6 @@
 {
   "name": "kempo-payouts",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Let users of a kempo site receive money from other users through Stripe Connect, with a fee for the site, without the site ever holding the funds",
   "license": "MIT",
   "author": "Dustin Poissant <dustinpoissant@gmail.com>",
