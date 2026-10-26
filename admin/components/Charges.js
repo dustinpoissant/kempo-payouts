@@ -1,8 +1,10 @@
 import ShadowComponent from '/kempo-ui/components/ShadowComponent.js';
 import '/kempo-ui/components/Spinner.js';
+import '/kempo-ui/components/Table.js';
+import '/kempo-ui/components/controls/TcOpen.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { listCharges } from '/payouts/sdk.js';
-import { chargeLabel, chargeTone, formatDateTime, formatMoney } from '/payouts/utils/format.js';
+import { chargeLabel, formatDateTime, formatMoney } from '/payouts/utils/format.js';
 
 /*
   Every payment made to a user, newest first, with what the site kept from each. Each opens its own
@@ -15,6 +17,28 @@ import { chargeLabel, chargeTone, formatDateTime, formatMoney } from '/payouts/u
 
 const PAGE = 25;
 const CHARGE = '/admin/extension/kempo-payouts/charge/';
+
+const fields = [
+  { name: 'createdAt', label: 'When', size: 180, editable: false, calculator: charge => formatDateTime(charge.createdAt) },
+  {
+    name: 'recipient', label: 'Paid to', size: 200, editable: false,
+    calculator: charge => charge.recipient?.name || charge.recipient?.email || charge.recipientUserId,
+  },
+  {
+    name: 'description', label: 'For', editable: false,
+    calculator: charge => charge.description || `${charge.referenceOwner} · ${charge.referenceId}`,
+  },
+  { name: 'amount', label: 'Amount', size: 120, editable: false, calculator: charge => formatMoney(charge.amount, charge.currency) },
+  {
+    name: 'feeKept', label: 'Fee kept', size: 120, editable: false,
+    calculator: charge => formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency),
+  },
+  {
+    name: 'amountRefunded', label: 'Refunded', size: 120, editable: false,
+    calculator: charge => charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—',
+  },
+  { name: 'status', label: 'Status', size: 140, editable: false, calculator: chargeLabel },
+];
 
 export default class Charges extends ShadowComponent {
   static properties = {
@@ -87,7 +111,13 @@ const pane = this.closest('k-tab-content');
     this.load();
   };
 
-  go = id => location.assign(`${CHARGE}?id=${encodeURIComponent(id)}`);
+  updated(changed){
+    if(!changed.has('charges')) return;
+    this.renderRoot.querySelector('k-table')?.setData({
+      records: this.charges.map(charge => ({ ...charge, _url: `${CHARGE}?id=${encodeURIComponent(charge.id)}` })),
+      fields,
+    });
+  }
 
   /*
     Rendering
@@ -114,24 +144,9 @@ const pane = this.closest('k-tab-content');
       </div>
       ${this.error ? html`<p class="tc-danger" role="alert">${this.error}</p>` : nothing}
       ${!this.charges.length && !this.loading ? html`<p class="tc-muted">${this.status || this.owner || this.ref ? 'No payment matches that.' : 'Nobody has paid a user yet.'}</p>` : html`
-        <div class="table-wrapper">
-          <table>
-            <thead><tr><th>When</th><th>Paid to</th><th>For</th><th class="ta-right">Amount</th><th class="ta-right">Fee kept</th><th class="ta-right">Refunded</th><th>Status</th></tr></thead>
-            <tbody>
-              ${this.charges.map(charge => html`
-                <tr @click=${() => this.go(charge.id)}>
-                  <td><a href="${CHARGE}?id=${encodeURIComponent(charge.id)}" @click=${event => event.stopPropagation()}>${formatDateTime(charge.createdAt)}</a></td>
-                  <td>${charge.recipient?.name || charge.recipient?.email || charge.recipientUserId}</td>
-                  <td>${charge.description || `${charge.referenceOwner} · ${charge.referenceId}`}</td>
-                  <td class="ta-right">${formatMoney(charge.amount, charge.currency)}</td>
-                  <td class="ta-right">${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}</td>
-                  <td class="ta-right">${charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—'}</td>
-                  <td class="tc-${chargeTone(charge)}">${chargeLabel(charge)}</td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
-        </div>
+        <k-table open-on-click>
+          <kc-tc-open slot="before"></kc-tc-open>
+        </k-table>
         ${this.total > PAGE ? html`
           <div class="d-f pager">
             <button ?disabled=${this.offset === 0} @click=${() => this.page(-1)}>Previous</button>
@@ -149,8 +164,6 @@ const pane = this.closest('k-tab-content');
     .controls label { margin: 0; }
     .controls input, .controls select { margin: 0; max-width: 16rem; }
     .pager { gap: var(--spacer); align-items: center; }
-    tbody tr { cursor: pointer; }
-    tbody tr:hover { background: var(--c_bg__alt); }
   `;
 }
 

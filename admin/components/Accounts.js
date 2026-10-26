@@ -1,5 +1,7 @@
 import ShadowComponent from '/kempo-ui/components/ShadowComponent.js';
 import '/kempo-ui/components/Spinner.js';
+import '/kempo-ui/components/Table.js';
+import '/kempo-ui/components/controls/TcOpen.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getSummary, listAccounts } from '/payouts/sdk.js';
 import { accountStatus, formatDate, formatMoney } from '/payouts/utils/format.js';
@@ -14,6 +16,23 @@ import { accountStatus, formatDate, formatMoney } from '/payouts/utils/format.js
 
 const PAGE = 25;
 const ACCOUNT = '/admin/extension/kempo-payouts/account/';
+
+const fields = [
+  {
+    name: 'user', label: 'User', editable: false,
+    calculator: account => account.user?.name || account.user?.email || account.userId,
+  },
+  {
+    name: 'status', label: 'Status', size: 180, editable: false,
+    calculator: account => `${accountStatus(account.status).label}${account.payoutFailure ? ' · A payout failed' : ''}`,
+  },
+  { name: 'country', label: 'Country', size: 100, editable: false },
+  {
+    name: 'providerAccountId', label: 'Stripe account', size: 200, editable: false,
+    calculator: account => account.providerAccountId.startsWith('acct_') ? account.providerAccountId : '—',
+  },
+  { name: 'createdAt', label: 'Connected', size: 180, editable: false, formatter: formatDate },
+];
 
 export default class Accounts extends ShadowComponent {
   static properties = {
@@ -95,7 +114,13 @@ const pane = this.closest('k-tab-content');
     this.load();
   };
 
-  go = id => location.assign(`${ACCOUNT}?id=${encodeURIComponent(id)}`);
+  updated(changed){
+    if(!changed.has('accounts')) return;
+    this.renderRoot.querySelector('k-table')?.setData({
+      records: this.accounts.map(account => ({ ...account, _url: `${ACCOUNT}?id=${encodeURIComponent(account.id)}` })),
+      fields,
+    });
+  }
 
   /*
     Rendering
@@ -143,25 +168,9 @@ const pane = this.closest('k-tab-content');
       ${!this.accounts.length && !this.loading
         ? html`<p class="tc-muted">${this.search || this.status ? 'No payout account matches that.' : 'Nobody has connected a payout account yet. Users do it on the Get paid page, /payouts/.'}</p>`
         : html`
-          <div class="table-wrapper">
-            <table>
-              <thead><tr><th>User</th><th>Status</th><th>Country</th><th>Stripe account</th><th>Connected</th></tr></thead>
-              <tbody>
-                ${this.accounts.map(account => html`
-                  <tr @click=${() => this.go(account.id)}>
-                    <td>
-                      <a href="${ACCOUNT}?id=${encodeURIComponent(account.id)}" @click=${event => event.stopPropagation()}>${account.user?.name || account.user?.email || account.userId}</a>
-                      ${account.user?.name ? html`<span class="tc-muted d-b">${account.user.email}</span>` : nothing}
-                    </td>
-                    <td class="tc-${accountStatus(account.status).tone}">${accountStatus(account.status).label}${account.payoutFailure ? html`<span class="tc-danger d-b">A payout failed</span>` : nothing}</td>
-                    <td>${account.country}</td>
-                    <td class="ff-mono">${account.providerAccountId.startsWith('acct_') ? account.providerAccountId : '—'}</td>
-                    <td class="tc-muted">${formatDate(account.createdAt)}</td>
-                  </tr>
-                `)}
-              </tbody>
-            </table>
-          </div>
+          <k-table open-on-click>
+            <kc-tc-open slot="before"></kc-tc-open>
+          </k-table>
           ${this.total > PAGE ? html`
             <div class="d-f pager">
               <button ?disabled=${this.offset === 0} @click=${() => this.page(-1)}>Previous</button>
@@ -180,8 +189,6 @@ const pane = this.closest('k-tab-content');
     .controls input[type="search"], .controls select { margin: 0; max-width: 22rem; }
     .tile { display: flex; flex-direction: column; gap: var(--spacer_q); min-width: 13rem; max-width: 22rem; padding-bottom: var(--spacer); }
     .tile .value { font-size: 1.6rem; line-height: 1.2; font-weight: 600; }
-    tbody tr { cursor: pointer; }
-    tbody tr:hover { background: var(--c_bg__alt); }
   `;
 }
 

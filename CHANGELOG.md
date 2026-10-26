@@ -52,3 +52,8 @@ npm is a placeholder carrying the plan. Release **after kempo-payments 0.2.0**, 
   `full`, Stripe collects its fees from the recipient and carries the losses. Verified in test mode: a
   $20.00 charge with a $1.00 fee shows Stripe's 88¢ on the recipient's side and a net of $18.12. The
   Express setup remains in the code and tests as the alternative.
+
+## [0.1.3] - 2026-10-26
+### Changed
+- The accounts and charges lists are kempo-ui tables, and a charge's refunds are a table. Clicking a row opens it.
+- Requires kempo 4.9.7 (the admin lists use kempo-ui tables).

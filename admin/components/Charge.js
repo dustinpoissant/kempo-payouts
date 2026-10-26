@@ -1,6 +1,7 @@
 import ShadowComponent from '/kempo-ui/components/ShadowComponent.js';
 import '/kempo-ui/components/Icon.js';
 import '/kempo-ui/components/Spinner.js';
+import '/kempo-ui/components/Table.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getCharge, newKey, refundCharge, syncCharge } from '/payouts/sdk.js';
 import { chargeLabel, chargeTone, formatDateTime, formatMoney, parseMoney, toMajor } from '/payouts/utils/format.js';
@@ -18,6 +19,14 @@ import permissions from './permissions.js';
 */
 
 const ACCOUNTS = '/admin/extension/kempo-payouts/';
+
+const refundFields = [
+  { name: 'createdAt', label: 'When', size: 200, editable: false, formatter: formatDateTime },
+  { name: 'amount', label: 'Amount', size: 140, editable: false, calculator: refund => formatMoney(refund.amount, refund.currency) },
+  { name: 'status', label: 'Status', size: 150, editable: false },
+  { name: 'reason', label: 'Why', editable: false, calculator: refund => refund.reason || '' },
+];
+
 
 export default class Charge extends ShadowComponent {
   static properties = {
@@ -142,6 +151,13 @@ export default class Charge extends ShadowComponent {
     `;
   }
 
+  /* Fills the refunds table whenever the charge's detail arrives. */
+  updated(changed){
+    if(!changed.has('detail') || !this.detail) return;
+    this.renderRoot.querySelector('#refundsTable')?.setData({ records: this.detail.refunds, fields: refundFields });
+  }
+
+
   render(){
     if(!this.detail) return this.error ? html`<p class="tc-danger" role="alert">${this.error}</p>` : html`<k-spinner></k-spinner>`;
     const { charge, payment, refunds, recipient, payer } = this.detail;
@@ -174,21 +190,7 @@ export default class Charge extends ShadowComponent {
 
       ${refunds.length ? html`
         <h3>Refunds</h3>
-        <div class="table-wrapper">
-          <table>
-            <thead><tr><th>When</th><th class="ta-right">Amount</th><th>Status</th><th>Why</th></tr></thead>
-            <tbody>
-              ${refunds.map(refund => html`
-                <tr>
-                  <td class="tc-muted">${formatDateTime(refund.createdAt)}</td>
-                  <td class="ta-right">${formatMoney(refund.amount, refund.currency)}</td>
-                  <td>${refund.status}</td>
-                  <td>${refund.reason || ''}</td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
-        </div>
+        <k-table id="refundsTable"></k-table>
       ` : nothing}
     `;
   }

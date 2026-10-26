@@ -1,6 +1,7 @@
 import ShadowComponent from '/kempo-ui/components/ShadowComponent.js';
 import '/kempo-ui/components/Icon.js';
 import '/kempo-ui/components/Spinner.js';
+import '/kempo-ui/components/Table.js';
 import { html, css, nothing } from '/kempo-ui/lit-all.min.js';
 import { getAccount, getAccountBalance, syncAccount } from '/payouts/sdk.js';
 import { accountStatus, chargeLabel, chargeTone, formatDateTime, formatMoney, requirementLabels } from '/payouts/utils/format.js';
@@ -28,6 +29,16 @@ const SETUP = {
     stripe: 'Stripe — a negative balance they cannot pay back is Stripe’s',
   },
 };
+
+const chargeFields = [
+  { name: 'createdAt', label: 'When', size: 180, editable: false, formatter: formatDateTime },
+  { name: 'description', label: 'For', editable: false, calculator: charge => charge.description || `${charge.referenceOwner} · ${charge.referenceId}` },
+  { name: 'amount', label: 'Amount', size: 130, editable: false, calculator: charge => formatMoney(charge.amount, charge.currency) },
+  { name: 'feeKept', label: 'Fee kept', size: 130, editable: false, calculator: charge => formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency) },
+  { name: 'refunded', label: 'Refunded', size: 130, editable: false, calculator: charge => charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—' },
+  { name: 'status', label: 'Status', size: 150, editable: false, calculator: chargeLabel },
+];
+
 
 export default class Account extends ShadowComponent {
   static properties = {
@@ -116,6 +127,16 @@ export default class Account extends ShadowComponent {
     `;
   }
 
+  /* Fills the charges table whenever the account's detail arrives. */
+  updated(changed){
+    if(!changed.has('detail') || !this.detail) return;
+    this.renderRoot.querySelector('#chargesTable')?.setData({
+      records: this.detail.charges.map(charge => ({ ...charge, _url: `${CHARGE}?id=${encodeURIComponent(charge.id)}` })),
+      fields: chargeFields,
+    });
+  }
+
+
   render(){
     if(!this.detail) return this.error ? html`<p class="tc-danger" role="alert">${this.error}</p>` : html`<k-spinner></k-spinner>`;
     const { account, user, charges, totals, countryName } = this.detail;
@@ -153,23 +174,7 @@ export default class Account extends ShadowComponent {
       <h3>Payments to them</h3>
       ${totals.length ? html`<p class="mb">${totals.map(total => `${formatMoney(total.amount, total.currency)} paid, ${formatMoney(total.fees, total.currency)} kept by the site`).join('; ')}.</p>` : nothing}
       ${!charges.length ? html`<p class="tc-muted">Nobody has paid them yet.</p>` : html`
-        <div class="table-wrapper">
-          <table>
-            <thead><tr><th>When</th><th>For</th><th class="ta-right">Amount</th><th class="ta-right">Fee kept</th><th class="ta-right">Refunded</th><th>Status</th></tr></thead>
-            <tbody>
-              ${charges.map(charge => html`
-                <tr>
-                  <td><a href="${CHARGE}?id=${encodeURIComponent(charge.id)}">${formatDateTime(charge.createdAt)}</a></td>
-                  <td>${charge.description || `${charge.referenceOwner} · ${charge.referenceId}`}</td>
-                  <td class="ta-right">${formatMoney(charge.amount, charge.currency)}</td>
-                  <td class="ta-right">${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}</td>
-                  <td class="ta-right">${charge.amountRefunded ? formatMoney(charge.amountRefunded, charge.currency) : '—'}</td>
-                  <td class="tc-${chargeTone(charge)}">${chargeLabel(charge)}</td>
-                </tr>
-              `)}
-            </tbody>
-          </table>
-        </div>
+        <k-table id="chargesTable" open-on-click></k-table>
       `}
     `;
   }
