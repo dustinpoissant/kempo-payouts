@@ -265,7 +265,7 @@ const tests = {
 
     await settings.getByLabel(/^Fee/).fill('2.5');
     await settings.getByLabel(/^Most per recipient/).fill('50.00');
-    await settings.getByLabel('Only the countries ticked below').check();
+    await settings.getByLabel('Only the countries selected below').check();
     await settings.getByLabel('United States').check();
     await shot(page, 'admin-settings');
     await settings.getByRole('button', { name: 'Save' }).click();

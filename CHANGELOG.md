@@ -6,6 +6,8 @@ All notable changes to `kempo-payouts` are documented in this file.
 
 ### Changed
 
+- **The Payouts admin page's tabs use hash routing**, so each tab has its own address. The remembered tab (`persistent-id`) is removed, as on the other tab pages. `?tab=` links still open the named tab.
+
 - **Its menu icon ships with it** (`admin/icons/payments.svg`), used by `icon-src`, instead of coming from kempo's shared set.
 - Its menu entry is in the **Payments** group, after Store Credits (priority 76), instead of Commerce.
 
@@ -13,6 +15,8 @@ First real release (built 2026-10-15; committed locally, **not pushed or publish
 npm is a placeholder carrying the plan. Release **after kempo-payments 0.2.0**, which this requires.
 
 ### Added
+
+- The Payouts admin page has a `payouts-admin-tabs` location after its tabs, so an extension can add a tab there.
 
 - **Connected payout accounts.** A user connects a Stripe account at `/payouts/` (Stripe-hosted
   onboarding — this site never sees identity or bank details); `canReceive` is true only when Stripe

@@ -18,7 +18,7 @@ locked: true
       their bank, and this site keeps only its fee. The money is never this site’s to hold.
     </p>
 
-    <k-tabs id="tabs" active="accounts" persistent-id="kempo-payouts-admin-tab">
+    <k-tabs id="tabs" active="accounts" hash-routing>
       <k-tab id="accountsTab" for="accounts">Accounts</k-tab>
       <k-tab id="chargesTab" for="charges">Payments</k-tab>
       <k-tab id="settingsTab" for="settings">Settings</k-tab>
@@ -34,6 +34,8 @@ locked: true
       <k-tab-content id="settingsContent" name="settings">
         <k-payouts-settings></k-payouts-settings>
       </k-tab-content>
+
+      <location name="payouts-admin-tabs" />
     </k-tabs>
 
     <!--

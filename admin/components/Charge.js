@@ -141,7 +141,7 @@ export default class Charge extends ShadowComponent {
           <label class="checkbox mb">
             <input type="checkbox" .checked=${this.form.fee} @change=${event => { this.form = { ...this.form, fee: event.target.checked }; }} />
             Give back the site’s fee too
-            <small class="d-b tc-muted">The site kept ${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}. Ticked, that is returned in proportion to the refund; unticked, the recipient pays the whole refund and the site keeps its fee.</small>
+            <small class="d-b tc-muted">The site kept ${formatMoney(charge.feeAmount - charge.feeRefunded, charge.currency)}. If selected, that is returned in proportion to the refund; if not, the recipient pays the whole refund and the site keeps its fee.</small>
           </label>
         ` : nothing}
         <div class="d-f actions">

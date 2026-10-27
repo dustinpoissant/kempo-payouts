@@ -9,8 +9,8 @@ import { formatDateTime, formatMoney, parseMoney, toMajor } from '/payouts/utils
   The site's fee, its cap, the countries payouts are offered in, and the Connect webhook.
 
   The countries are Stripe's list — fetched, never typed in — and the choice here can only narrow it:
-  "Every country Stripe supports" or a ticked subset. A country Stripe cannot take payments to in the
-  site's currency, or refused an account in, is shown with why and cannot be ticked.
+  "Every country Stripe supports" or a selected subset. A country Stripe cannot take payments to in the
+  site's currency, or refused an account in, is shown with why and cannot be selected.
 
   The webhook secret is never shown; its field is always empty and saving with it empty leaves the
   stored one alone.
@@ -166,7 +166,7 @@ const pane = this.closest('k-tab-content');
         </label>
         <label class="checkbox mb">
           <input type="radio" name="scope" .checked=${this.narrow} @change=${() => { this.narrow = true; }} />
-          Only the countries ticked below
+          Only the countries selected below
         </label>
         ${this.narrow ? html`
           <div class="countries mb">
